@@ -65,9 +65,9 @@ normalized expression values are stored in a separate matrix within the
 Seurat object, which allows us to play around with different
 normalization strategies without manually keeping a backup of the
 original values. In addition to RNA counts, we are able to store
-additional data types (called *assays*) within the Seurat object, such
-as protein measurements measured by CITE-seq, though we will stick to
-the default RNA assay here.
+additional data types (termed assays) within the Seurat object, such as
+protein measurements measured by CITE-seq, though we will stick to the
+default RNA assay here.
 
 First, create Seurat objects for each of the datasets, and then merge
 into one large Seurat object. We will use the cell metadata to keep
@@ -134,10 +134,10 @@ head(alldata@meta.data)
 
 Note that the `_RNA` suffix is due to the aforementioned potential to
 hold multiple assays. The default assay is named `RNA`, accessible by
-the assays slot `alldata@assays$RNA`, which is by default set to be the
-standard active assay (see `alldata@active.assay`). Effectively this
-means that any calls that are done on the Seurat object are applied on
-the `RNA` assay data.
+`alldata[["RNA"]]` or using the assays slot `alldata@assays$RNA`, which
+is by default set to be the standard active assay (see
+`alldata@active.assay`). Effectively this means that any calls that are
+done on the Seurat object are applied on the `RNA` assay data.
 
 ### Calculate mitochondrial proportion
 
@@ -344,15 +344,6 @@ data.filt <- CellCycleScoring(
   g2m.features = cc.genes$g2m.genes,
   s.features = cc.genes$s.genes
 )
-```
-
-    ## Warning: The following features are not present in the object: MLF1IP, not
-    ## searching for symbol synonyms
-
-    ## Warning: The following features are not present in the object: FAM64A, HN1, not
-    ## searching for symbol synonyms
-
-``` r
 VlnPlot(data.filt, features = c("S.Score","G2M.Score"))
 ```
 
@@ -369,26 +360,60 @@ with the
 [scater](https://bioconductor.org/packages/release/bioc/vignettes/scater/inst/doc/overview.html)
 package. To do so we will convert the Seurat object to a
 [`SingleCellExperiment`](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html)
-(SCE) object.
+(SCE) object, and add some quality controls metrics to filter out low
+quality cells as before.
 
 ``` r
 pbmc.sce <- SingleCellExperiment(assays = list(counts = as.matrix(v3.1k)))
-#pbmc.sce <- pbmc.sce[rowSums(counts(pbmc.sce) > 0) > 2,]
-#isSpike(pbmc.sce, "MT") <- grepl("^MT-", rownames(pbmc.sce))
-#pbmc.sce <- calculateQCMetrics(pbmc.sce)
 pbmc.sce <- addPerCellQC(pbmc.sce, subsets=list(MT=grepl("^MT-", rownames(pbmc.sce))))
-pbmc.sce <- addPerFeatureQC(pbmc.sce)
-print(colnames(colData(pbmc.sce)))
+#pbmc.sce <- addPerFeatureQC(pbmc.sce)
 ```
 
-    ## [1] "sum"                 "detected"            "subsets_MT_sum"     
-    ## [4] "subsets_MT_detected" "subsets_MT_percent"  "total"
+Similar to Seurat objects, SCE objects hold metadata for the cells and
+features. We can access this data using `colData(pbmc.sce)` and
+`rowData(pbmc.sce)` respectively. Take a look at what QC metrics have
+been calculated for the cells:
 
-Filter out poor quality cells to avoid negative size factors. These
-steps are very similar to what we have already done on the combined
-Seurat object but now we perform them on one dataset only using the
-scater package. We can subset SCE objects using the square brackets
-syntax, as we would subset a normal data frame or matrix.
+``` r
+head(colData(pbmc.sce))
+```
+
+    ## DataFrame with 6 rows and 6 columns
+    ##                          sum  detected subsets_MT_sum subsets_MT_detected
+    ##                    <numeric> <numeric>      <numeric>           <numeric>
+    ## AAACCCAAGGAGAGTA-1      8288      2620            893                  11
+    ## AAACGCTTCAGCCCAG-1      5512      1808            439                  13
+    ## AAAGAACAGACGACTG-1      4283      1562            265                  11
+    ## AAAGAACCAATGGCAG-1      2754      1225            165                  10
+    ## AAAGAACGTCTGCAAT-1      6592      1831            436                  11
+    ## AAAGGATAGTAGACAT-1      8845      2048            704                  11
+    ##                    subsets_MT_percent     total
+    ##                             <numeric> <numeric>
+    ## AAACCCAAGGAGAGTA-1           10.77461      8288
+    ## AAACGCTTCAGCCCAG-1            7.96444      5512
+    ## AAAGAACAGACGACTG-1            6.18725      4283
+    ## AAAGAACCAATGGCAG-1            5.99129      2754
+    ## AAAGAACGTCTGCAAT-1            6.61408      6592
+    ## AAAGGATAGTAGACAT-1            7.95930      8845
+
+By default we get `sum`, the library size (sum of counts), and
+`detected`, the number of features with non-zero counts. The column
+`total` is only relevant if we wish to [subset the genes into distinct
+groups that are processed
+seperately](https://bioconductor.org/packages/devel/bioc/vignettes/SingleCellExperiment/inst/doc/intro.html#5_Adding_alternative_feature_sets),
+which we will not do here. We find similar metrics for just the
+mitochondrial genes in the `subsets_MT_*` columns as we have specified
+them explicitly in the `subsets` parameter in the quality control call
+above. Note that for subsets we get an additional `*_percent` column
+indicating the percentage of counts that originate from that gene
+subset.
+
+We will use these metrics to filter out poor quality cells to avoid
+negative size factors. These steps are very similar to what we have
+already done on the combined Seurat object but now we perform them on
+one dataset only using the scater package. We can subset SCE objects
+using the square brackets syntax, as we would normally subset a data
+frame or matrix in R.
 
 ``` r
 pbmc.sce <- pbmc.sce[, pbmc.sce$subsets_MT_percent < 20]
@@ -403,26 +428,20 @@ assay(pbmc.sce, "logcounts_raw") <- log2(counts(pbmc.sce) + 1)
 plotRLE(pbmc.sce[,1:50], exprs_values = "logcounts_raw", style = "full")
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-1-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/rle_unnormalized-1.png)<!-- -->
 
 Run PCA and save the result in a new object, as we will overwrite the
-PCA slot later.
+PCA slot later. Also plot the expression of the B cell marker MS4A1.
 
 ``` r
 raw.sce <- runPCA(pbmc.sce, exprs_values = "logcounts_raw")
-scater::plotPCA(raw.sce, colour_by = "total")
-```
-
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-2-1.png)<!-- -->
-
-Plot the expression of the B cell marker MS4A1.
-
-``` r
-plotReducedDim(raw.sce, dimred = "PCA", by_exprs_values = "logcounts_raw",
+p1 <- scater::plotPCA(raw.sce, colour_by = "total")
+p2 <- plotReducedDim(raw.sce, dimred = "PCA", by_exprs_values = "logcounts_raw",
                colour_by = "MS4A1")
+p1 + p2
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/pca_unnormalized-1.png)<!-- -->
 
 ### Normalization: Log
 
@@ -436,39 +455,30 @@ into a SingleCellExperiment object for comparing plots.
 
 ``` r
 pbmc.seu <- CreateSeuratObject(counts(pbmc.sce), project = "PBMC")
-```
-
-    ## Warning: The following arguments are not used: row.names
-
-``` r
 pbmc.seu <- NormalizeData(pbmc.seu)
 pbmc.seu.sce <- as.SingleCellExperiment(pbmc.seu)
 pbmc.seu.sce <- addPerCellQC(pbmc.seu.sce)
 ```
 
-Perform PCA and examine the normalization results with plotRLE and
-plotReducedDim. This time, use “logcounts” as the expression values to
-plot (or omit the parameter, as “logcounts” is the default value). Check
+Perform PCA and examine the normalization results with `plotRLE` and
+`plotReducedDim`. This time, use `logcounts` as the expression values to
+plot (or omit the parameter, as `logcounts` is the default value). Check
 some marker genes, for example GNLY (NK cells) or LYZ (monocytes).
 
 ``` r
 plotRLE(pbmc.seu.sce[,1:50], style = "full")
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-5-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/rle_normalized-1.png)<!-- -->
 
 ``` r
 pbmc.seu.sce <- runPCA(pbmc.seu.sce)
-scater::plotPCA(pbmc.seu.sce, colour_by = "total")
+p1 <- scater::plotPCA(pbmc.seu.sce, colour_by = "total")
+p2 <- plotReducedDim(pbmc.seu.sce, dimred = "PCA", colour_by = "MS4A1")
+p1 + p2
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-6-1.png)<!-- -->
-
-``` r
-plotReducedDim(pbmc.seu.sce, dimred = "PCA", colour_by = "MS4A1")
-```
-
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-7-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/pca_normalized-1.png)<!-- -->
 
 ### Normalization: scran
 
@@ -479,6 +489,9 @@ into cell-based factors for cell-specific normalization. Clustering
 cells prior to normalization is not always necessary but it improves
 normalization accuracy by reducing the number of DE genes between cells
 in the same cluster.
+
+We will apply this normalization procedure on the unnormalized
+`pbmc.sce` object from before.
 
 ``` r
 qclust <- scran::quickCluster(pbmc.sce)
@@ -501,20 +514,16 @@ plotRLE(pbmc.sce[,1:50], exprs_values = "logcounts", exprs_logged = FALSE,
         style = "full")
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/rle_normalized_scran-1.png)<!-- -->
 
 ``` r
 pbmc.sce <- runPCA(pbmc.sce)
-scater::plotPCA(pbmc.sce, colour_by = "total")
+p1 <- scater::plotPCA(pbmc.sce, colour_by = "total")
+p2 <- plotReducedDim(pbmc.sce, dimred = "PCA", colour_by = "MS4A1")
+p1 + p2
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
-
-``` r
-plotReducedDim(pbmc.sce, dimred = "PCA", colour_by = "MS4A1")
-```
-
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/pca_normalized_scran-1.png)<!-- -->
 
 ## 3. Feature selection
 
@@ -560,7 +569,7 @@ lines(dec$mean[o], dec$tech[o], col="dodgerblue", lwd=2)
 points(dec$mean[dec$HVG], dec$total[dec$HVG], col="red", pch=16)
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/unnamed-chunk-3-1.png)<!-- -->
 
 ``` r
 ## save the decomposed variance table and hvg_genes into metadata for safekeeping
@@ -575,7 +584,7 @@ greater than zero, using a false discovery rate (FDR) of 5%.
 plotExpression(pbmc.sce, features = rownames(dec[top.hvgs[1:10],]))
 ```
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-13-1.png)<!-- -->
+![](QC_Normalization_files/figure-gfm/plot_expression-1.png)<!-- -->
 
 ### Feature selection: Seurat
 
@@ -592,11 +601,29 @@ vplot <- VariableFeaturePlot(pbmc.seu)
 LabelPoints(plot = vplot, points = top10, repel = TRUE, xnudge = 0, ynudge = 0)
 ```
 
-    ## Warning: Transformation introduced infinite values in continuous x-axis
+![](QC_Normalization_files/figure-gfm/unnamed-chunk-4-1.png)<!-- -->
 
-    ## Warning: Removed 15477 rows containing missing values (geom_point).
+Seurat automatically stores the feature metrics in the metadata of the
+assay.
 
-![](QC_Normalization_files/figure-gfm/unnamed-chunk-14-1.png)<!-- -->
+``` r
+head(pbmc.seu[["RNA"]][[]])
+```
+
+    ##                 vst.mean vst.variance vst.variance.expected
+    ## MIR1302-2HG 0.0000000000 0.0000000000          0.0000000000
+    ## FAM138A     0.0000000000 0.0000000000          0.0000000000
+    ## OR4F5       0.0000000000 0.0000000000          0.0000000000
+    ## AL627309.1  0.0056925996 0.0056655692          0.0062141702
+    ## AL627309.3  0.0009487666 0.0009487666          0.0009485591
+    ## AL627309.2  0.0000000000 0.0000000000          0.0000000000
+    ##             vst.variance.standardized vst.variable
+    ## MIR1302-2HG                 0.0000000        FALSE
+    ## FAM138A                     0.0000000        FALSE
+    ## OR4F5                       0.0000000        FALSE
+    ## AL627309.1                  0.9117177        FALSE
+    ## AL627309.3                  1.0002187        FALSE
+    ## AL627309.2                  0.0000000        FALSE
 
 How many of the variable genes detected with scran are included in
 VariableFeatures in Seurat?
