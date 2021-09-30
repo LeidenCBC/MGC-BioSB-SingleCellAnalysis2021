@@ -1,0 +1,199 @@
+---
+title: "Clustering"
+output: github_document
+---
+
+Created by: Ahmed Mahfouz
+
+Edited by: Mohammed Charrout, Lieke Michielsen
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.width=9, fig.height=6) 
+```
+
+# Overview
+
+In this tutorial we will look at different approaches to cluster scRNA-seq datasets in order to characterize the different subgroups of cells. Using unsupervised clustering, we will try to identify groups of cells based on the similarities of the transcriptomes without any prior knowledge of the labels.
+
+Load required packages:
+
+```{r packages}
+suppressMessages(require(Seurat))
+```
+
+## Datasets
+
+Again, we will continue with dataset the you have preprocessed and visualized in the previous practicals. Let's start by loading the data again.
+
+During the previous practical, we have already selected highly variable genes. This step is also to decide which genes to use when clustering the cells. Single cell RNA-seq can profile a huge number of genes in a lot of cells. But most of the genes are not expressed enough to provide a meaningful signal and are often driven by technical noise. Including them could potentially add some unwanted signal that would blur the biological variation. Moreover gene filtering can also speed up the computational time for downstream analysis.
+
+
+```{r load}
+pbmc <- readRDS('../session-dimensionalityreduction/pbmc3k.rds')
+```
+
+## Clustering
+
+### Hierarchical clustering
+
+```{r hierarchical_eucledian_ward, fig.width=20, fig.height=5}
+# Get scaled counts from the Seurat object
+scaled_pbmc <- pbmc@assays$RNA@scale.data
+
+# Calculate Distances (default: Euclidean distance)
+distance_euclidean <- dist(t(scaled_pbmc))
+
+#Perform hierarchical clustering using ward linkage
+ward_hclust_euclidean <- hclust(distance_euclidean,method = "ward.D2")
+plot(ward_hclust_euclidean, main = "dist = eucledian, Ward linkage", labels=FALSE)
+```
+
+Now cut the dendrogram to generate 10 clusters and plot the cluster labels and the previously given celltype labels on the t-SNE plot. For now, we just pick 10, but you can of course vary this number to see how it influences your results.
+
+```{r hierarchical_eucledian_ward_pcaplot, warning=FALSE, fig.width=12}
+#Cutting the cluster tree to make 10 groups
+cluster_hclust <- cutree(ward_hclust_euclidean,k = 10)
+pbmc@meta.data$cluster_hclust <- factor(cluster_hclust)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "cluster_hclust")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+```
+
+
+Now let's try a different distance measure. A commonly used distance measure is 1 - correlation.
+
+```{r hierarchical_corr_ward, fig.width=20, fig.height=5}
+# Calculate Distances (1 - correlation)
+C <- cor(scaled_pbmc)
+
+# Run clustering based on the correlations, where the distance will 
+# be 1-correlation, e.g. higher distance with lower correlation.
+distance_corr <- as.dist(1-C) 
+    
+#Perform hierarchical clustering using ward linkage
+ward_hclust_corr <- hclust(distance_corr,method="ward.D2")
+plot(ward_hclust_corr, main = "dist = 1-corr, Ward linkage", labels=FALSE)
+```
+
+Again, let's cut the dendrogram to generate 10 clusters and plot the cluster labels on the t-SNE plot.
+
+```{r hierarchical_corr_ward_pcaplot, warning=FALSE, fig.width=12}
+#Cutting the cluster tree to make 10 groups
+cluster_hclust <- cutree(ward_hclust_corr,k = 10)
+pbmc@meta.data$cluster_hclust <- factor(cluster_hclust)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "cluster_hclust")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+```
+
+Instead of changing the distance metric, we can change the linkage method. Instead of using Ward's method, let's use complete linkage.
+
+```{r hierarchical_eucledian_complete, fig.width=20, fig.height=5}
+
+#Perform hierarchical clustering using complete linkage & euclidean distance
+comp_hclust_eucledian <- hclust(distance_euclidean,method = "complete")
+plot(comp_hclust_eucledian, main = "dist = euclidean, complete linkage", labels=FALSE)
+```
+
+Once more, let's cut the dendrogram to generate 10 clusters and plot the cluster labels on the t-SNE plot.
+
+```{r hierarchical_eucledian_complete_pcaplot, warning=FALSE, fig.width=12}
+#Cutting the cluster tree to make 10 groups
+cluster_hclust <- cutree(comp_hclust_eucledian,k = 10)
+pbmc@meta.data$cluster_hclust <- factor(cluster_hclust)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "cluster_hclust")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+```
+As you can see, these linkage methods and distances cluster the data differently. If you want, there are even more distance measures and linkage methods to play around with. 
+
+
+### K-means
+Next, we will try the k-means algorithm on the scaled data.
+
+
+```{r kmeans, warning=FALSE, fig.width=12}
+pbmc_kmeans <- kmeans(x = t(scaled_pbmc), centers = 10)
+pbmc@meta.data$cluster_kmeans <- factor(pbmc_kmeans$cluster)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "cluster_kmeans")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+
+
+```
+
+
+### Graph based clustering
+
+The clustering algorithm of Seurat itself is based on graph based clustering. The output of the clustering, will be saved automatically in the metadata as 'seurat_clusters'. As explained in the lecture, the resolution parameter is related to the number of clusters. You can play around with this parameters to see how it influences the results.
+
+```{r graph_clust, warning=FALSE, fig.width=12}
+pbmc <- FindNeighbors(pbmc, dims = 1:10, verbose = FALSE)
+pbmc <- FindClusters(pbmc, resolution = 0.25, verbose = FALSE)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "seurat_clusters")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+
+```
+
+
+## Visualizing marker genes and annotating the cells
+Once, you are satisfied with the clusters, these can be annotated by visualizing known marker genes or by looking at differentially expressed genes. In a later practical, you will learn how to select these, for now we will just focus on known marker genes. A commonly used approach is that the data is annotated in a hierarchical fashion. First the data is annotated at a low resolution (e.g. only 2-3 cell types) and afterwards each cluster is subsetted from the data, clustered and annotated again. This process can continue until you're satisfied with the resolution.
+
+```{r graph_clust_lowres, warning=FALSE, fig.width=12}
+pbmc <- FindNeighbors(pbmc, dims = 1:10, verbose = FALSE)
+pbmc <- FindClusters(pbmc, resolution = 0.01, verbose = FALSE)
+
+p1 <- DimPlot(pbmc, reduction="tsne", group.by = "seurat_clusters")
+p2 <- DimPlot(pbmc, reduction="tsne", group.by = "celltype")
+
+p1+p2
+
+```
+
+So now that we have clustered the data at a low resolution, we can visualize some marker genes: CD19 (B cells), CD3D (T cells), CD14 (Monocytes), NKG7 (NK cells).
+
+```{r featplot, warning=FALSE, fig.width=12, fig.height=10}
+
+FeaturePlot(pbmc, reduction='tsne', features=c('CD19', 'CD3D', 'CD14', 'NKG7'))
+
+```
+
+For a new, more complex dataset, you will probably need to visualize more genes before you can label a cluster. For now, we will assume that cluster 0 are NK and T cells, cluster 1 are Monocytes and cluster 2 are B cells. In  the code below, you will assign these labels to your cluster.
+
+```{r clusnames, warning=FALSE, fig.width=4, fig.height=4}
+new.cluster.ids <- c("NK and T cells", "Monocytes", "B cells")
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+DimPlot(pbmc, reduction = "tsne", label = TRUE) + NoLegend()
+```
+
+If you want to cluster the cells at a higher resolution, you could for instance subset the data now and repeat these steps. For now, we will just save the object for the next practicals.
+
+```{r, export}
+saveRDS(pbmc, file = "pbmc3k.rds")
+```
+
+
+
+### Session info
+
+```{r}
+sessionInfo()
+```
+
+
+
+
+
