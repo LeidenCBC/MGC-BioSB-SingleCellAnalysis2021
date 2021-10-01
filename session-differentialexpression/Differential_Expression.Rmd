@@ -1,0 +1,289 @@
+---
+title: "Differential Expression"
+output: github_document
+---
+
+Created by: Ahmed Mahfouz
+Edited by: Mohammed Charrout, Lieke Michielsen
+
+```{r, setup, include=FALSE}
+knitr::opts_chunk$set(fig.width = 5, fig.height = 5)
+options(stringsAsFactors = FALSE)
+set.seed(32546)
+```
+
+# Overview
+
+In this tutorial we will explore different methods to perform differential expression analysis on scRNA-seq data. 
+The exercises are based on Seurat's differential expression testing [vignette](https://satijalab.org/seurat/articles/de_vignette.html).
+
+Load required packages:
+
+```{r, packages, message=FALSE, warning=FALSE}
+require(Seurat)
+require(scran)
+require(scater)
+require(pheatmap)
+#require(BiocFileCache)
+#require(DropletUtils)
+#require(scRNAseq)
+#require(EnsDb.Hsapiens.v86)
+```
+
+We will continue with our PBMC dataset.
+
+```{r, load}
+pbmc <- readRDS(file = "../session-clustering/pbmc3k.rds")
+```
+
+## Differential expression testing in Seurat
+
+In Seurat, differential expression analysis can be performed using the `FindMarkers` function. 
+As a default, Seurat performs differential expression based on the non-parameteric Wilcoxon rank sum test. 
+Differential expression is performed between groups of cells. 
+To test for differential expression between two specific groups of cells, specify the `ident.1` and `ident.2` parameters.
+The function will automatically retrieve the cluster identities from the Seurat object using the `Idents()` function. 
+
+Before applying the function, we first have to change the identities to the original `celltype` column, as we have changed them in the clustering lab.
+
+```{r, seurat_a}
+levels(pbmc)
+Idents(pbmc) <- 'celltype'
+levels(pbmc)
+```
+
+```{r, seurat_b}
+# Find differentially expressed features between CD8 and CD4 T-cells
+tcell.de.markers <- FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = "CD4 T cell")
+# View results
+head(tcell.de.markers)
+```
+
+The results data frame has the following columns:
+* `p_val`: Unadjusted p-value  
+* `avg_log2FC`: log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.  
+* `pct.1`: The percentage of cells where the feature is detected in the first group.  
+* `pct.2`: The percentage of cells where the feature is detected in the second group.  
+* `p_val_adj`: Adjusted p-value, based on Bonferroni correction using all features in the dataset.  
+
+If the ident.2 parameter is omitted or set to NULL, `FindMarkers` will test for differentially expressed features between the group specified by ident.1 and all other cells.
+
+```{r, seurat_c}
+# Find differentially expressed features between CD8 T-cells and all other cells, only
+# search for positive markers
+tcell.de.markers <- FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = NULL, only.pos = TRUE)
+# view results
+head(tcell.de.markers)
+```
+
+To increase the speed of marker discovery, particularly for large datasets, Seurat allows for pre-filtering of features or cells. 
+For example, features that are very infrequently detected in either group of cells, or features that are expressed at similar average levels, are unlikely to be differentially expressed. 
+Example use cases of the `min.pct`, `logfc.threshold`, `min.diff.pct`, and `max.cells.per.ident` parameters are demonstrated below.
+
+```{r, seurat_d}
+# Pre-filter features that are detected at <50% frequency in either CD8 T-cells or CD4 T-cells. 
+head(FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = "CD4 T cell", min.pct = 0.5))
+```
+
+```{r, seurat_e}
+# Pre-filter features that have less than a two-fold change between the average expression of
+# CD8 T-cells vs CD4 T-cells.
+head(FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = "CD4 T cell", logfc.threshold = log(2)))
+```
+
+```{r, seurat_f}
+# Pre-filter features whose detection percentages across the two groups are similar (within 0.25)
+head(FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = "CD4 T cell", min.diff.pct = 0.25))
+```
+
+Finally, you can also identify all cluster markers in one go using `FindAllMarkers`.
+
+```{r, seurat_h}
+head(FindAllMarkers(pbmc, logfc.threshold = log(2), min.pct = 0.5, min.diff.pct = 0.25))
+```
+
+### Alternative DE tests in Seurat
+
+The following differential expression tests are currently supported by Seurat:
+* `wilcox`: Wilcoxon rank sum test (default)  
+* `bimod`: Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)  
+* `roc`: Standard AUC classifier  
+* `t`: Student's t-test  
+* `poisson`: Likelihood ratio test assuming an underlying negative binomial distribution.  
+* `negbinom`: Likelihood ratio test assuming an underlying negative binomial distribution.  
+* `LR`: Uses a logistic regression framework to determine differentially expressed genes. Constructs a logistic regression model predicting group membership based on each feature individually and compares this to a null model with a likelihood ratio test.  
+* `MAST`: GLM-framework that treates cellular detection rate as a covariate (Finak et al, Genome Biology, 2015)  
+* `DESeq2`: DE based on a model using the negative binomial distribution (Love et al, Genome Biology, 2014)  
+
+For MAST and DESeq2 please ensure that these packages are installed separately in order to use them as part of Seurat. 
+Once installed, the `test.use` parameter can be used to specify which DE test to use.
+
+```{r, seurat_g}
+# Test for DE features using the MAST package
+head(FindMarkers(pbmc, ident.1 = "CD8 T cell", ident.2 = "CD4 T cell", test.use = "MAST"))
+```
+
+
+## Differential expression analysis using scran
+
+The `findMarkers()` function in scran uses a different approach to identify marker genes compared to Seurat. 
+While in Seurat the default is to perform one vs all comparisons, `findMarkers()` in scran performs pairwise comparisons between clusters for each gene. 
+The default test in `findMarkers()` is the Welch t-test. 
+
+Scran intentionally uses pairwise comparisons between clusters rather than comparing each cluster to the average of all other cells. 
+The latter approach is sensitive to the population composition, potentially resulting in substantially different sets of markers when cell type abundances change in different contexts. 
+In the worst case, the presence of a single dominant subpopulation will drive the selection of top markers for every other cluster, pushing out useful genes that can resolve the various minor subpopulations. 
+
+First, let's convert our Seurat object to a SingleCellExperiment object.
+
+```{r, scran_a}
+pbmc.sce <- as.SingleCellExperiment(pbmc)
+```
+
+`findMarkers()` returns a list of data frames containing ranked candidate markers for each cluster. 
+
+```{r, scran_b}
+markers.pbmc <- findMarkers(pbmc.sce, groups=pbmc.sce$ident)
+```
+
+You can then choose one data frame (in this example, corresponding to CD8 T-cells). 
+This data frame contains log2-fold changes of expression in the chosen cluster over each other cluster as well as several statistics obtained by combining p-values across the pairwise comparisons involving the cluster of interest.
+
+```{r, scran_c}
+chosen <- "CD8 T cell"
+interesting <- markers.pbmc[[chosen]]
+interesting[1:10,1:4]
+```
+
+The `summary.logFC` field provides a summary of the direction and effect size for each gene. 
+`logFC` is defined here as the log-fold change from the comparison with the lowest p-value. 
+The `p.value` field contains the combined p-value that is obtained by applying Simes’ method to the pairwise p-values for each gene.
+Of particular interest is the `Top` field. 
+The set of genes with `Top` $≤ X$ is the union of the top $X$ genes (ranked by p-value) from each pairwise comparison involving the cluster of interest.
+
+Let's plot a heatmap of the top 5 genes for CD8 T-cells.
+
+```{r, scran_e}
+best.set <- interesting[interesting$Top <= 5,]
+logFCs <- getMarkerEffects(best.set)
+pheatmap(logFCs, breaks=seq(-5, 5, length.out=101))
+```
+
+### Wilcoxon vs t-test
+
+Also in scran, you can use different DE tests. 
+Beside the default Welch t-test, you can also use a Wilcoxon rank-sum test or a binomial test.  
+
+```{r, scran_f}
+markers.pbmc.wrs <- findMarkers(pbmc.sce, groups=pbmc.sce$ident, test="wilcox")
+interesting.wrs <- markers.pbmc.wrs[[chosen]]
+interesting.wrs[1:10,1:4]
+```
+
+One advantage of the Wilcoxon rank-sum test over the Welch t-test is that it is symmetric with respect to differences in the size of the groups being compared. 
+In other words, it is less affected by the number of cells in each group. 
+On the other hand, the t-test will favor genes where the larger group has the higher relative variance as this increases the estimated degrees of freedom and decreases the resulting p-value.
+
+To illustrate this we will use an example from ["Orchestrating Single-Cell Analysis with Bioconductor”](https://osca.bioconductor.org/marker-detection.html). 
+In this example, we will compare alpha and gamma cells in the human pancreas data set from Lawlor et al. (2017)
+
+```{r, scran_g, fig.wide=TRUE, fig.asp=2, fig.width=8}
+sce.lawlor <- readRDS(file = "sce_lawlor.rds")
+marker.lawlor.t <- findMarkers(sce.lawlor, groups=sce.lawlor$`cell type`, 
+                               direction="up", restrict=c("Alpha", "Gamma/PP"))
+marker.lawlor.w <- findMarkers(sce.lawlor, groups=sce.lawlor$`cell type`, 
+                               direction="up", restrict=c("Alpha", "Gamma/PP"), test.type="wilcox")
+# Upregulated in alpha:
+marker.alpha.t <- marker.lawlor.t$Alpha
+marker.alpha.w <- marker.lawlor.w$Alpha
+chosen.alpha.t <- rownames(marker.alpha.t)[1:5]
+chosen.alpha.w <- rownames(marker.alpha.w)[1:5]
+u.alpha.t <- setdiff(chosen.alpha.t, chosen.alpha.w)
+u.alpha.w <- setdiff(chosen.alpha.w, chosen.alpha.t)
+# Upregulated in gamma:
+marker.gamma.t <- marker.lawlor.t$`Gamma/PP`
+marker.gamma.w <- marker.lawlor.w$`Gamma/PP`
+chosen.gamma.t <- rownames(marker.gamma.t)[1:5]
+chosen.gamma.w <- rownames(marker.gamma.w)[1:5]
+u.gamma.t <- setdiff(chosen.gamma.t, chosen.gamma.w)
+u.gamma.w <- setdiff(chosen.gamma.w, chosen.gamma.t)
+# Examining all uniquely detected markers in each direction.
+subset <- sce.lawlor[,sce.lawlor$`cell type` %in% c("Alpha", "Gamma/PP")]
+gridExtra::grid.arrange(
+  plotExpression(subset, x="cell type", features=u.alpha.t, ncol=2) +
+    ggtitle("Upregulated in alpha, t-test-only"),
+  plotExpression(subset, x="cell type", features=u.alpha.w, ncol=2) +
+    ggtitle("Upregulated in alpha, WMW-test-only"),
+  plotExpression(subset, x="cell type", features=u.gamma.t, ncol=2) +
+    ggtitle("Upregulated in gamma, t-test-only"),
+  plotExpression(subset, x="cell type", features=u.gamma.w, ncol=2) +
+    ggtitle("Upregulated in gamma, WMW-test-only"),
+  ncol=2
+)
+```
+
+Can you observe the effects of the tests in the resulting genes?
+
+
+## DE testing for integrated data
+
+Nowadays, it is common to work with multiple scRNA-seq datasets. 
+As we have seen in the integration practical, several strategies exist to integrate multiple datasets and perform cell-based analysis (e.g. clustering or trajectory inference) using the integrated data (i.e. data corrected for batch effects). 
+
+But what about gene-based analysis? 
+Can we use the integrated (i.e. corrected) data for differential expression analysis? 
+In general, this is not recommended. 
+The reason is that arbitrary correction algorithms do not preserve the magnitude or the direction of differences in per-gene expression when attempting to align multiple batches. 
+Further, the correction can introduce artificial agreement across batches. 
+For a good discussion of these implications, check [chapter 13.7](https://osca.bioconductor.org/integrating-datasets.html#using-corrected-values) in ["Orchestrating Single-Cell Analysis with Bioconductor”](https://osca.bioconductor.org/marker-detection.html).
+
+For these reasons, it is preferred to perform DE testing using the uncorrected expression data. 
+There are two strategies to handle the batch effects in this case.
+
+### Identifying conserved markers (Seurat)
+
+To identify canonical cell type marker genes that are conserved across batches, Seurat provides the `FindConservedMarkers` function. 
+This function performs differential gene expression testing for each dataset/group/batch separately and combines the p-values using meta-analysis methods from the `MetaDE` R package. 
+
+For this example, we will use the Azimuth PBMC reference atlas used in the integration session.
+We will merge it with our PBMC dataset, which will act as a second "batch".
+
+```{r, integration_a}
+pbmc.atlas <- readRDS(file = "../session-integration/pbmc_azimuth.rds")
+Idents(pbmc.atlas) <- 'celltype.l1'
+# Remove cells types not in our dataset and rename the remaining ones to match our labels
+pbmc.atlas <- subset(x = pbmc.atlas, idents = c("other", "other T"), invert = TRUE)
+pbmc.atlas <- RenameIdents(object = pbmc.atlas, `CD4 T` = "CD4 T cell", `CD8 T` = "CD8 T cell",
+                           B = "B cell", DC = "Dendritic cell", Mono = "Monocyte", NK = "NK cell")
+# And merge
+pbmc.merged <- merge(x = pbmc.atlas, y = pbmc, add.cell.ids = c("atlas", "pbmc"))
+pbmc.merged <- AddMetaData(pbmc.merged, sub("_.*", "", colnames(pbmc.merged)), "batch")
+table(pbmc.merged$batch)
+# Now find the conserved markers for CD8 T-cells by batch
+cd8.markers <- FindConservedMarkers(pbmc.merged, ident.1 = "Monocyte", grouping.var = "batch", #verbose = FALSE)
+                                    min.pct = 0.00001)
+                                    #logfc.threshold = 0.05, min.pct = 0.25, min.diff.pct = 0.25)
+head(cd8.markers, n=10)
+```
+
+
+### Identifying consistent markers (scran)
+
+Alternatively, we can perform DE tests on the uncorrected data with blocking on the batch. The rational here is that we expect true DE between clusters to be present in a within-batch comparison where batch effects are absent. This strategy penalizes genes that exhibit inconsistent DE across batches, 
+
+```{r integration_b}
+pancreas.sce <- as.SingleCellExperiment(pancreas)
+m.out <- findMarkers(pancreas.sce, group = pancreas.sce$celltype, block = pancreas.sce$tech,
+    direction="up", lfc=1)
+demo <- m.out[["beta"]]
+as.data.frame(demo[1:20,c("Top", "p.value", "FDR")]) 
+plotExpression(pancreas.sce, x=I(factor(pancreas.sce$celltype)), 
+    features="INS", colour_by="tech") + facet_wrap(~colour_by)
+```
+
+
+### Session info
+
+```{r}
+sessionInfo()
+```
