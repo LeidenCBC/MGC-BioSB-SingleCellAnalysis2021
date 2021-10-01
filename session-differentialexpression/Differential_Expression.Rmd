@@ -24,10 +24,6 @@ require(Seurat)
 require(scran)
 require(scater)
 require(pheatmap)
-#require(BiocFileCache)
-#require(DropletUtils)
-#require(scRNAseq)
-#require(EnsDb.Hsapiens.v86)
 ```
 
 We will continue with our PBMC dataset.
@@ -60,6 +56,7 @@ head(tcell.de.markers)
 ```
 
 The results data frame has the following columns:
+
 * `p_val`: Unadjusted p-value  
 * `avg_log2FC`: log fold-change of the average expression between the two groups. Positive values indicate that the feature is more highly expressed in the first group.  
 * `pct.1`: The percentage of cells where the feature is detected in the first group.  
@@ -105,6 +102,7 @@ head(FindAllMarkers(pbmc, logfc.threshold = log(2), min.pct = 0.5, min.diff.pct 
 ### Alternative DE tests in Seurat
 
 The following differential expression tests are currently supported by Seurat:
+
 * `wilcox`: Wilcoxon rank sum test (default)  
 * `bimod`: Likelihood-ratio test for single cell feature expression, (McDavid et al., Bioinformatics, 2013)  
 * `roc`: Standard AUC classifier  
@@ -245,40 +243,52 @@ There are two strategies to handle the batch effects in this case.
 To identify canonical cell type marker genes that are conserved across batches, Seurat provides the `FindConservedMarkers` function. 
 This function performs differential gene expression testing for each dataset/group/batch separately and combines the p-values using meta-analysis methods from the `MetaDE` R package. 
 
-For this example, we will use the Azimuth PBMC reference atlas used in the integration session.
-We will merge it with our PBMC dataset, which will act as a second "batch".
+To illustrate this, we will again load in the other PBMC datasets and merge them with our PBMC dataset.
+The cell type labels from the integration practical will be used again to identify the cell populations.
 
-```{r, integration_a}
-pbmc.atlas <- readRDS(file = "../session-integration/pbmc_azimuth.rds")
-Idents(pbmc.atlas) <- 'celltype.l1'
-# Remove cells types not in our dataset and rename the remaining ones to match our labels
-pbmc.atlas <- subset(x = pbmc.atlas, idents = c("other", "other T"), invert = TRUE)
-pbmc.atlas <- RenameIdents(object = pbmc.atlas, `CD4 T` = "CD4 T cell", `CD8 T` = "CD8 T cell",
-                           B = "B cell", DC = "Dendritic cell", Mono = "Monocyte", NK = "NK cell")
-# And merge
-pbmc.merged <- merge(x = pbmc.atlas, y = pbmc, add.cell.ids = c("atlas", "pbmc"))
-pbmc.merged <- AddMetaData(pbmc.merged, sub("_.*", "", colnames(pbmc.merged)), "batch")
-table(pbmc.merged$batch)
-# Now find the conserved markers for CD8 T-cells by batch
-cd8.markers <- FindConservedMarkers(pbmc.merged, ident.1 = "Monocyte", grouping.var = "batch", #verbose = FALSE)
-                                    min.pct = 0.00001)
-                                    #logfc.threshold = 0.05, min.pct = 0.25, min.diff.pct = 0.25)
+```{r, integration_a, warning=FALSE}
+# Load and process v2.1k dataset
+v2.1k <- Read10X_h5("../session-qc-normalization/pbmc_1k_v2_filtered_feature_bc_matrix.h5")
+meta.data <- read.table('../session-integration/celltypes_1k_v2.tsv', sep = '\t', header = TRUE, row.names = 1)
+v2.1k <- CreateSeuratObject(v2.1k, meta.data = meta.data, project = 'v2.1k')
+v2.1k <- NormalizeData(v2.1k)
+
+# Load and process p3.1k dataset
+p3.1k <- Read10X_h5("../session-qc-normalization/pbmc_1k_protein_v3_filtered_feature_bc_matrix.h5")
+meta.data <- read.table('../session-integration/celltypes_1k_protein.tsv', sep = '\t', header = TRUE, row.names = 1)
+p3.1k <- CreateSeuratObject(p3.1k$`Gene Expression`, meta.data = meta.data, project = 'p3.1k')
+p3.1k <- NormalizeData(p3.1k)
+
+# Merge
+pbmc.all <- merge(x = pbmc, y = c(v2.1k, p3.1k), add.cell.ids = c("v3.1k", "v2.1k", "p3.1k"))
+pbmc.all <- AddMetaData(pbmc.all, sub("_.*", "", colnames(pbmc.all)), "batch")
+Idents(pbmc.all) <- 'celltype'
+table(pbmc.all[[c("batch", "celltype")]])
+```
+
+Now find the conserved markers for CD8 T-cells by batch.
+
+```{r, integration_b}
+cd8.markers <- FindConservedMarkers(pbmc.all, ident.1 = "CD8 T cell", grouping.var = "batch", 
+                                    logfc.threshold = 0.1, min.pct = 0.25, min.diff.pct = 0.25)
 head(cd8.markers, n=10)
 ```
 
 
 ### Identifying consistent markers (scran)
 
-Alternatively, we can perform DE tests on the uncorrected data with blocking on the batch. The rational here is that we expect true DE between clusters to be present in a within-batch comparison where batch effects are absent. This strategy penalizes genes that exhibit inconsistent DE across batches, 
+Alternatively, we can perform DE tests on the uncorrected data with blocking on the batch. 
+The rational here is that we expect true DE between clusters to be present in a within-batch comparison where batch effects are absent. 
+This strategy penalizes genes that exhibit inconsistent DE across batches.
 
-```{r integration_b}
-pancreas.sce <- as.SingleCellExperiment(pancreas)
-m.out <- findMarkers(pancreas.sce, group = pancreas.sce$celltype, block = pancreas.sce$tech,
+```{r, integration_c, fig.width=10, fig.height=4}
+pbmc.all.sce <- as.SingleCellExperiment(pbmc.all)
+m.out <- findMarkers(pbmc.all.sce, group = pbmc.all.sce$celltype, block = pbmc.all.sce$batch,
     direction="up", lfc=1)
-demo <- m.out[["beta"]]
-as.data.frame(demo[1:20,c("Top", "p.value", "FDR")]) 
-plotExpression(pancreas.sce, x=I(factor(pancreas.sce$celltype)), 
-    features="INS", colour_by="tech") + facet_wrap(~colour_by)
+m.out$`CD8 T cell`[1:20, c("Top", "p.value", "FDR")]
+plotExpression(pbmc.all.sce, x=I(factor(pbmc.all.sce$celltype)), 
+    features="CD3D", colour_by="batch") + facet_wrap(~colour_by) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
 
 
