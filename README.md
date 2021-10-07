@@ -31,7 +31,6 @@ For this course, we make use of RStudio Cloud. All you need for this is a browse
 - Miao Chien (Erasmus MC)
 - Roberta Menafra (LUMC)
 - Ahmed Mahfouz (LUMC/TU Delft)
-- Marcel Reinders (LUMC/TU Delft)
 - Tamim Abdelaal (LUMC/TU Delft)
 - Thomas Höllt (LUMC/TU Delft)
 - Mohammed Charrout (TU Delft/ LUMC)
