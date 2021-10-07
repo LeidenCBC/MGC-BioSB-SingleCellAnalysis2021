@@ -52,6 +52,7 @@
 |14:30-16:00 |Practical: [Differential expression analysis]() | TAs(Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 
 ### Day 5 (Friday 22.10.2021) - _Mini-symposium (together with scNL)_
+_*Note: this takes place on zoom*_
 | When | What | Who |
 | ------------- | ------------- | ------------- |
 |09:00-09:45 |Dissecting intratumoral T cell states in human cancer using single cell technologies | Anne van der Leun (NKI) |
