@@ -1,24 +1,23 @@
 ---
 title: "Trajectory inference"
 author: "Jules GILET (Institut Curie, France)"
-date: "13-10-2020"
-output: md_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+options(stringsAsFactors = FALSE)
+set.seed(32546)
 ```
 
-Trajectory inference
-===================
-
-Created by: Jules GILET (Institut Curie, France)
+Created by: Jules GILET (Institut Curie, France)  
+Edited by: Mohammed Charrout, Lieke Michielsen  
 
 Overview
 ========
 
 Transcriptional trajectories will be inferred from data by Nestorowa, Hamey et al. ([Blood, 2016](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5305050/))
-The dataset consists in 1600 hematopoietic stem and progenitor cells from mouse bone marrow (sequenced using the SMARTseq2 technology).
+The dataset consists of 1600 hematopoietic stem and progenitor cells from mouse bone marrow, sequenced using the SMARTseq2 technology.
 Using flow cytometry and index sorting, 12 HSPC of different phenotypes (about 10 cells each) have been included in the dataset, and will be used in this lab as a biological prior for the identification of the root and the branches in the transcriptional trajectory models.
 
 ## Datasets
@@ -31,10 +30,9 @@ You can find the datasets within `data.zip` in this directory. Unpack it, and ma
 
 ## Part I - Monocle2/DDRtree
 
+Inference is done with Monocle2/DDRtree available via Bioconductor.
 
-```{r}
-# Inference done with Monocle2/DDRtree available via Bioconductor
-
+```{r, packages, message=FALSE, warning=FALSE}
 library(monocle)
 library(biomaRt)
 ```
@@ -48,7 +46,7 @@ lognorm <- t(read.table('data/nestorowa_corrected_log2_transformed_counts.txt', 
 anno_table <- read.table('data/nestorowa_corrected_population_annotation.txt')
 ```
 
-To infer a trajectory with Monocle2/DDRtree, using non-normalized UMI-based counts is highly recommended, as Monocle2 will scale and normalize the data internally and is expecting data ditributed according to a negative binomial.
+To infer a trajectory with Monocle2/DDRtree, using non-normalized UMI-based counts is highly recommended, as Monocle2 will scale and normalize the data internally and is expecting data distributed according to a negative binomial.
 
 The count matrix has been downloaded and will be used for Monocle2:
 
@@ -70,7 +68,8 @@ lognorm[1:5,1:5]
 dim(lognorm)
 ```
 
-Note that the count matrix is not filtered, and genes are labelled according to ensembl gene IDs. We will first filter the matrix according to the authors choices (ie. we keep the cells and genes present in the lognorm matrix) and we will map the gene official symbols.
+Note that the count matrix is not filtered, and genes are labelled according to ensembl gene IDs. 
+We will first filter the matrix according to the authors choices (ie. we keep the cells and genes present in the lognorm matrix) and we will map the gene official symbols.
 
 We filter the counts to keep only high quality cells:
 
@@ -79,7 +78,7 @@ counts <- counts[ , colnames(lognorm) ]
 dim(counts)
 ```
 
-We create a annotation data frame to label the cell types as defined by the authors:
+We create an annotation data frame to label the cell types as defined by the authors:
 
 ```{r}
 pDat <- data.frame(cell=colnames(counts), celltype='undefined', stringsAsFactors=FALSE)
@@ -108,7 +107,7 @@ head(fDat)
 We can now use this table to filter the genes in the counts matrix that are highly expressed according to the quality filters used by the authors:
 
 ```{r}
-fDat <- fDat[ fDat$gene_short_name %in% rownames(lognorm), ]
+fDat <- fDat[fDat$gene_short_name %in% rownames(lognorm), ]
 ```
 
 And we finally keep in the counts matrix only these genes:
@@ -126,7 +125,8 @@ dim(fDat)
 dim(pDat)
 ```
 
-We build a cell dataset object in an appropriate format for monocle. Default method for modeling the expression values is `VGAM::negbinomial.size()` and is adapted to counts.
+We build a cell dataset object in an appropriate format for Monocle. 
+Default method for modeling the expression values is `VGAM::negbinomial.size()` and is adapted to counts.
 
 ```{r}
 cds <- newCellDataSet(as.matrix(counts), phenoData=Biobase::AnnotatedDataFrame(pDat), featureData=Biobase::AnnotatedDataFrame(fDat))
@@ -137,7 +137,7 @@ cds
 
 The monocle cds object is built and ready for trajectory inference.
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 dir.create('monocle', showWarnings=FALSE)
 saveRDS(cds, 'monocle/cds_hematopoiesis.rds')
 
@@ -147,26 +147,24 @@ cds <- estimateSizeFactors(cds)
 cds <- estimateDispersions(cds)
 ```
 
+We find the genes that are expressed by applying a filter based on a minimum expression threshold.
+
 ```{r}
-# No need for further filtering, the expression matrix has already be filtered
-# We find the genes that are expressed:
 cds <- detectGenes(cds, min_expr=0.1)
 print(head(fData(cds)))
 ```
 
+We then identify genes that are expressed in at least 10 cells.
+
 ```{r}
-# We identify genes that are expressed in at least 10 cells
 expressed_genes <- row.names(subset(fData(cds), num_cells_expressed >= 10))
 length(expressed_genes)
 ```
 
-```{r}
-print(head(pData(cds)))
-```
+Identification of the ordering genes by differential testing (likelihood ratio test) i.e. genes that are presumed to be important in the differentiation process captured in the sample. 
+We used the cell types identified by the authors to define the ordering genes by DE testing. (Alternatively, a classical approach consist of clustering the cells, then identify markers genes per clusters.)
 
-Identification of the ordering genes by differential testing (likelihood ratio test) ie. genes that are presumed to be important in the differentiation process captured in the sample. We used the cell types identified by the authors to define the ordering genes by DE testing. (Alternatively, a classical approach consist in clustering the cells, then identify markers genes per clusters.)
-
-```{r}
+```{r, warning=FALSE}
 diff_test_res <- differentialGeneTest(cds[ expressed_genes, ], fullModelFormulaStr="~ celltype")
 ordering_genes <- row.names(subset(diff_test_res, qval < 0.01))
 length(ordering_genes)
@@ -180,7 +178,7 @@ cds <- setOrderingFilter(cds, ordering_genes)
 
 We use the DDRTree algorithm to infer a trajectory with potential branching points.
 
-```{r}
+```{r, warning=FALSE}
 cds <- reduceDimension(cds, max_components = 2, method='DDRTree')
 cds <- orderCells(cds)
 plot_cell_trajectory(cds, color_by="celltype")
@@ -198,9 +196,9 @@ The most immature HSCs in the sample express E-Slam. We will define the root of 
 table(pData(cds)$State, pData(cds)$celltype)[,"ESLAM"]
 ```
 
-State 1 defines the root in the model as it contains all 10 of the E-Slam-expressing cells. Note that Monocle might return a different state number containg these cells. Simply pass the correct state number to the `orderCells` function:
+State 1 defines the root in the model as it contains all 10 of the E-Slam-expressing cells. Note that Monocle might return a different state number containing these cells. Simply pass the correct state number to the `orderCells` function:
 
-```{r}
+```{r, warning=FALSE}
 cds <- orderCells(cds, root_state = 1)
 ```
 
@@ -212,9 +210,9 @@ plot_cell_trajectory(cds, color_by = "Pseudotime")
 
 #### Differential expression testing per branch
 
-We look at the genes that are differentially expressed according to the pseudotime model this time:
+This time we look at the genes that are differentially expressed according to the pseudotime model.
 
-```{r}
+```{r, warning=FALSE}
 diff_test_res <- differentialGeneTest(cds[ ordering_genes, ], fullModelFormulaStr = "~sm.ns(Pseudotime)")
 sig_gene_names <- row.names(subset(diff_test_res, qval < 0.1))
 plot_pseudotime_heatmap(cds[ sig_gene_names[1:50], ], num_clusters = 3, cores=4, show_rownames=TRUE)
@@ -222,7 +220,7 @@ plot_pseudotime_heatmap(cds[ sig_gene_names[1:50], ], num_clusters = 3, cores=4,
 
 Differential expression per branch is done with a specific test: Branched expression analysis modeling (BEAM). The test compares two models with a likelihood ratio test for branch-dependent expression. The full model is the product of smooth Pseudotime and the Branch a cell is assigned to. The reduced model just includes Pseudotime. We look for genes involved in the erythroid pathway
 
-```{r}
+```{r, warning=FALSE, message=FALSE}
 BEAM_res <- BEAM(cds, branch_point = 1, cores = 4)
 ```
 
@@ -232,13 +230,13 @@ BEAM_res <- BEAM_res[,c("gene_short_name", "pval", "qval")]
 head(BEAM_res)
 ```
 
-```{r}
+```{r, warning=FALSE}
 plot_genes_branched_heatmap(cds[row.names(BEAM_res)[1:50]], branch_point = 1, num_clusters = 3, cores=4, use_gene_short_name=TRUE, show_rownames=TRUE)
 ```
 
 There is a clear separation between genes that are involved in the erythroid differentiation (eg. Gata1) on the left (cell fate1) with genes involved in the leukocyte differentiation (eg. Sell, Ccl9).
 
-```{r}
+```{r, warning=FALSE}
 plot_genes_branched_pseudotime(cds[row.names(BEAM_res)[1:5]], branch_point = 1, color_by = "celltype", ncol = 1)  + scale_color_manual(values=cell_colors)
 ```
 
@@ -246,13 +244,14 @@ plot_genes_branched_pseudotime(cds[row.names(BEAM_res)[1:5]], branch_point = 1, 
 ## Part II - Diffusion map
 
 
-```{r}
+```{r, message=FALSE, warning=FALSE}
 # Analysis and inference done with the destiny package available via Bioconductor
 
 # Trajectory inference by diffusion map an diffusion pseudotime
 
 library(destiny)
 library(ggplot2)
+library(gridExtra)
 ```
 
 #### Data loading
@@ -288,7 +287,7 @@ dir.create('destiny', showWarnings=FALSE)
 saveRDS(eset, 'destiny/eset_hematopoiesis.rds')
 ```
 
-```{r}
+```{r, warning=FALSE}
 # The process takes less than 60 seconds
 dmap <- DiffusionMap(eset)
 
@@ -296,24 +295,25 @@ dmap <- DiffusionMap(eset)
 plot.DiffusionMap(dmap)
 ```
 
-```{r}
-plot.DiffusionMap(dmap, dims=c(1,2))
+```{r, fig.width=11, fig.height=4}
+p1 <- plot.DiffusionMap(dmap, dims=c(1,2)) 
+p2 <- plot.DiffusionMap(dmap, dims=c(2,3))
+p3 <- plot.DiffusionMap(dmap, dims=c(1,3))
+grid.arrange(p1, p2, p3, nrow = 1)
 ```
 
-```{r}
-plot.DiffusionMap(dmap, dims=c(2,3))
-```
-
-```{r}
-plot.DiffusionMap(dmap, dims=c(1,3))
-```
 
 Components 1-2 describe well the branching process between erythroid (red) and myeloid/lymphoid (white) lineages.
 
 We use ggplot2 to have a better rendering and project the cell labels as defined by flow cytometry experiment and index sorting.
 
 ```{r}
-qplot(DC1, DC2, data=dmap, colour=celltype) + scale_color_manual(values=c('lightblue','brown','red','black','orange','yellow','blue','lightgrey')) + theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), panel.background = element_blank(), axis.line = element_line(colour = "black"))
+qplot(DC1, DC2, data=as.data.frame(dmap), colour=celltype) + 
+  scale_color_manual(values=c('lightblue','brown','red','black','orange','yellow','blue','lightgrey')) + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        panel.background = element_blank(), 
+        axis.line = element_line(colour = "black"))
 ```
 
 #### Pseudotime inference by diffusion 
