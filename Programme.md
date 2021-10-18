@@ -21,7 +21,7 @@
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: Experimental design & sample preparation | Susan Kloet |
 |10:00-10:30 |_break_ |  |
-|10:30-11:30 |Lecture: CITE-seq/proteogenomic assays/multi-omic (including epigenetics) | Miao-Ping Chien |
+|10:30-11:30 |Lecture: Single-cell multi-omics | Miao-Ping Chien |
 |11:30-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Dimensionality reduction | Thomas Höllt |
 |14:00-14:30 |_break_ | |
