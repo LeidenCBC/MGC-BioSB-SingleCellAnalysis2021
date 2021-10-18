@@ -10,11 +10,11 @@
 |10:00-10:30 |_break_ |  |
 |10:30-12:00 |Lecture: [scRNA-seq platforms](Lectures/Day2_scRNA-seq_platforms_Chien.pdf) | Miao-Ping Chien |
 |12:00-13:00 |_lunch_ |  |
-|13:00-14:00 |Lecture: preprocessing (from reads to a count matrix), including 10x Genomics Cell Ranger | Roberta Menafra |
+|13:00-14:00 |Lecture: [Preprocessing](Lectures/Day1_Preprocessing_Menafra.pdf) | Roberta Menafra |
 |14:00-14:30 |_break_| |
-|14:30-15:30 |Lecture: Quality control and normalization | Ahmed Mahfouz |
+|14:30-15:30 |Lecture: [Quality control and normalization](Day1_QC_and_Normalization_Mahfouz.pdf) | Ahmed Mahfouz |
 |15:30-15:45 |_break_ | |
-|15:45-17:00 |Practical: Quality control and normalization | TAs(Chiel Wevers, Hina Nazkhan, Remco Hoogenboezem) |
+|15:45-17:00 |Practical: [Quality control and normalization](session-qc-normalization/QC_Normalization.md) | TAs (Chiel Wevers, Hina Nazkhan, Remco Hoogenboezem) |
 
 ### Day 2 (Tuesday 19.10.2021)
 | When | What | Who |
@@ -25,18 +25,18 @@
 |11:30-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Dimensionality reduction | Thomas Höllt |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Dimensionality reduction | TAs(Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
+|14:30-16:00 |Practical: Dimensionality reduction | TAs (Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
 
 ### Day 3 (Wednesday 20.10.2021)
 | When | What | Who |
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: Clustering and cell annotation | Lieke Michielsen |
 |10:00-10:30 |_break_ |  |
-|10:30-12:00 |Practical: Clustering and cell annotation | TAs(Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|10:30-12:00 |Practical: Clustering and cell annotation | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Data integration | Tamim Abdelaal |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Data integration | TAs(Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|14:30-16:00 |Practical: Data integration | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
 |16:00-17:00 |Lecture: Spatial Transcriptomics | Anna Alemany |
 
 ### Day 4 (Thursday 21.10.2021)
@@ -44,11 +44,11 @@
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: Trajectory inference | Mohammed Charrout |
 |10:00-10:30 |_break_ |  |
-|10:30-12:00 |Practical: Trajectory inference | TAs(Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|10:30-12:00 |Practical: Trajectory inference | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Differential expression analysis | Ahmed Mahfouz |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Differential expression analysis | TAs(Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|14:30-16:00 |Practical: Differential expression analysis | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 
 ### Day 5 (Friday 22.10.2021) - _Mini-symposium (together with scNL)_
 _*Note: this takes place on zoom*_
