@@ -6,7 +6,7 @@
 ### Day 1 (Monday 18.10.2021)
 | When | What | Who |
 | ------------- | ------------- | ------------- |
-|09:00-10:00 |Lecture: [Overview of different single-cell platforms and assays]() | Susan Kloet |
+|09:00-10:00 |Lecture: [Overview of different single-cell platforms and assays](Lectures/Day1_Overview_single_cell_sequencing_Kloet.pdf) | Susan Kloet |
 |10:00-10:30 |_break_ |  |
 |10:30-12:00 |Lecture: [scRNA-seq platforms]() | Miao-Ping Chien |
 |12:00-13:00 |_lunch_ |  |
