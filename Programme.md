@@ -12,7 +12,7 @@
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: [Preprocessing](Lectures/Day1_Preprocessing_Menafra.pdf) | Roberta Menafra |
 |14:00-14:30 |_break_| |
-|14:30-15:30 |Lecture: [Quality control and normalization](Day1_QC_and_Normalization_Mahfouz.pdf) | Ahmed Mahfouz |
+|14:30-15:30 |Lecture: [Quality control and normalization](Lectures/Day1_QC_and_Normalization_Mahfouz.pdf) | Ahmed Mahfouz |
 |15:30-15:45 |_break_ | |
 |15:45-17:00 |Practical: [Quality control and normalization](session-qc-normalization/QC_Normalization.md) | TAs (Chiel Wevers, Hina Nazkhan, Remco Hoogenboezem) |
 
