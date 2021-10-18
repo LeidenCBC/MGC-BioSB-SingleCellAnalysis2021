@@ -8,7 +8,7 @@
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: [Overview of different single-cell platforms and assays](Lectures/Day1_Overview_single_cell_sequencing_Kloet.pdf) | Susan Kloet |
 |10:00-10:30 |_break_ |  |
-|10:30-12:00 |Lecture: scRNA-seq platforms | Miao-Ping Chien |
+|10:30-12:00 |Lecture: [scRNA-seq platforms](Lectures/Day2_scRNA-seq_platforms_Chien.pdf) | Miao-Ping Chien |
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: preprocessing (from reads to a count matrix), including 10x Genomics Cell Ranger | Roberta Menafra |
 |14:00-14:30 |_break_| |
