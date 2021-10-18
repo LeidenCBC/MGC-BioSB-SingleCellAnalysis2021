@@ -23,7 +23,7 @@
 |10:00-10:30 |_break_ |  |
 |10:30-11:30 |Lecture: [CITE-seq/proteogenomic assays/multi-omic (including epigenetics)] | Miao-Ping Chien |
 |11:30-13:00 |_lunch_ |  |
-|13:00-14:30 |Lecture: [Dimensionality reduction]() | Thomas Höllt |
+|13:00-14:00 |Lecture: [Dimensionality reduction]() | Thomas Höllt |
 |14:00-14:30 |_break_ | |
 |14:30-16:00 |Practical: [Dimensionality reduction]() | TAs(Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
 
