@@ -23,7 +23,7 @@
 |10:00-10:30 |_break_ |  |
 |10:30-11:30 |Lecture: Single-cell multi-omics | Miao-Ping Chien |
 |11:30-13:00 |_lunch_ |  |
-|13:00-14:00 |Lecture: Dimensionality reduction | Thomas Höllt |
+|13:00-14:00 |Lecture: [Dimensionality reduction](Lectures/Day2_Dimensionality_Reduction_Hollt.pdf) | Thomas Höllt |
 |14:00-14:30 |_break_ | |
 |14:30-16:00 |Practical: Dimensionality reduction | TAs (Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
 
