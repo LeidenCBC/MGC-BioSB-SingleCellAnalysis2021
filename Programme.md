@@ -21,11 +21,11 @@
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: [Experimental design & sample preparation](Lectures/Day2_Sample_prep_and_experimental_design_Kloet.pdf) | Susan Kloet |
 |10:00-10:30 |_break_ |  |
-|10:30-11:30 |Lecture: Single-cell multi-omics | Miao-Ping Chien |
+|10:30-11:30 |Lecture: [Single-cell multi-omics](Lectures/Day2_Single-cell_multi_omics_Chien.pdf) | Miao-Ping Chien |
 |11:30-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: [Dimensionality reduction](Lectures/Day2_Dimensionality_Reduction_Hollt.pdf) | Thomas Höllt |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Dimensionality reduction | TAs (Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
+|14:30-16:00 |Practical: [Dimensionality reduction](session-dimensionalityreduction/Dimensionality_Reduction.md) | TAs (Chiel Wevers, Hina Nazkhan, Gregory van Beek) |
 
 ### Day 3 (Wednesday 20.10.2021)
 | When | What | Who |
