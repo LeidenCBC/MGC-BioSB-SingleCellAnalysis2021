@@ -30,9 +30,9 @@
 ### Day 3 (Wednesday 20.10.2021)
 | When | What | Who |
 | ------------- | ------------- | ------------- |
-|09:00-10:00 |Lecture: Clustering and cell annotation | Lieke Michielsen |
+|09:00-10:00 |Lecture: [Clustering and cell annotation](Lectures/Day3_clustering_cell_annotation_Michielsen.pdf) | Lieke Michielsen |
 |10:00-10:30 |_break_ |  |
-|10:30-12:00 |Practical: Clustering and cell annotation | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
+|10:30-12:00 |Practical: [Clustering and cell annotation](session-clustering/Clustering.md) | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Data integration | Tamim Abdelaal |
 |14:00-14:30 |_break_ | |
