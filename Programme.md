@@ -34,9 +34,9 @@
 |10:00-10:30 |_break_ |  |
 |10:30-12:00 |Practical: [Clustering and cell annotation](session-clustering/Clustering.md) | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
-|13:00-14:00 |Lecture: Data integration | Tamim Abdelaal |
+|13:00-14:00 |Lecture: [Data integration](Lectures/Day3_Data_Integration_Abdelaal.pdf) | Tamim Abdelaal |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Data integration | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
+|14:30-16:00 |Practical: [Data integration](session-integration/Data_Integration.md) | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
 |16:00-17:00 |Lecture: Spatial Transcriptomics | Anna Alemany |
 
 ### Day 4 (Thursday 21.10.2021)
