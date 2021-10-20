@@ -37,7 +37,7 @@
 |13:00-14:00 |Lecture: [Data integration](Lectures/Day3_Data_Integration_Abdelaal.pdf) | Tamim Abdelaal |
 |14:00-14:30 |_break_ | |
 |14:30-16:00 |Practical: [Data integration](session-integration/Data_Integration.md) | TAs (Chiel Wevers, Remco Hoogenboezem, Gregory van Beek) |
-|16:00-17:00 |Lecture: Spatial Transcriptomics | Anna Alemany |
+|16:00-17:00 |Lecture: [Spatial Transcriptomics](Lectures/Day3_Spatial_transcriptomics_Alemany.pdf) | Anna Alemany |
 
 ### Day 4 (Thursday 21.10.2021)
 | When | What | Who |
