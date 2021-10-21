@@ -44,7 +44,7 @@
 | ------------- | ------------- | ------------- |
 |09:00-10:00 |Lecture: [Trajectory inference](Lectures/Day4_trajectory_inference_Charrout.pdf) | Mohammed Charrout |
 |10:00-10:30 |_break_ |  |
-|10:30-12:00 |Practical: Trajectory inference | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|10:30-12:00 |Practical: [Trajectory inference](session-trajectories/session-trajectories.md) | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
 |13:00-14:00 |Lecture: Differential expression analysis | Ahmed Mahfouz |
 |14:00-14:30 |_break_ | |
