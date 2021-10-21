@@ -46,9 +46,9 @@
 |10:00-10:30 |_break_ |  |
 |10:30-12:00 |Practical: [Trajectory inference](session-trajectories/session-trajectories.md) | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
-|13:00-14:00 |Lecture: Differential expression analysis | Ahmed Mahfouz |
+|13:00-14:00 |Lecture: [Differential expression analysis](Lectures/Day4_Differential_expression_Mahfouz.pdf) | Ahmed Mahfouz |
 |14:00-14:30 |_break_ | |
-|14:30-16:00 |Practical: Differential expression analysis | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
+|14:30-16:00 |Practical: [Differential expression analysis](session-differentialexpression/Differential_Expression.md) | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 
 ### Day 5 (Friday 22.10.2021) - _Mini-symposium (together with scNL)_
 _*Note: this takes place on zoom*_
