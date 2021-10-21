@@ -42,7 +42,7 @@
 ### Day 4 (Thursday 21.10.2021)
 | When | What | Who |
 | ------------- | ------------- | ------------- |
-|09:00-10:00 |Lecture: Trajectory inference | Mohammed Charrout |
+|09:00-10:00 |Lecture: [Trajectory inference](Lectures/Day4_trajectory_inference_Charrout.pdf) | Mohammed Charrout |
 |10:00-10:30 |_break_ |  |
 |10:30-12:00 |Practical: Trajectory inference | TAs (Hina Nazkhan, Remco Hoogenboezem, Gregory van Beek) |
 |12:00-13:00 |_lunch_ |  |
